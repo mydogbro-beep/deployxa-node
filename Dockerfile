@@ -7,12 +7,14 @@ RUN apk add --no-cache curl unzip ca-certificates \
  && unzip -o /tmp/xray.zip -d /tmp/xray xray \
  && chmod +x /tmp/xray/xray
 
-# Stage 2: minimal runtime image.
+# Stage 2: nginx fronts port 3000 (health check on `/` + WS proxy);
+# Xray itself listens on loopback port 3001 only.
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates nginx
 COPY --from=dl /tmp/xray/xray /usr/local/bin/xray
 COPY entrypoint.sh /entrypoint.sh
 COPY config.template.json /config.template.json
+COPY nginx.conf.template /nginx.conf.template
 RUN chmod +x /entrypoint.sh
 EXPOSE 3000
 ENTRYPOINT ["/entrypoint.sh"]

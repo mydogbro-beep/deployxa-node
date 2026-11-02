@@ -1,0 +1,44 @@
+# Front server for the Deployxa health check + WebSocket proxy.
+# Rendered by entrypoint.sh: __PATH__ is replaced with $NODE_PATH.
+# nginx listens on the platform-facing port 3000; Xray stays on
+# loopback port 3001 and is only reachable through the secret path.
+worker_processes 1;
+pid /tmp/nginx.pid;
+error_log /dev/stderr warn;
+
+events {
+    worker_connections 256;
+}
+
+http {
+    access_log /dev/stdout;
+
+    server {
+        listen 3000;
+
+        # Platform health check: root path must answer 200.
+        location = / {
+            access_log off;
+            default_type text/plain;
+            return 200 "ok\n";
+        }
+
+        # Secret WebSocket path -> Xray (VLESS inbound).
+        location = __PATH__ {
+            proxy_pass http://127.0.0.1:3001;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_read_timeout 86400;
+            proxy_send_timeout 86400;
+        }
+
+        # Everything else is a dead end.
+        location / {
+            return 404;
+        }
+    }
+}
