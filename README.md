@@ -20,9 +20,10 @@ values stay stable across restarts/redeploys.
 ## Networking
 
 - The container listens on **internal port 3000** (the only inbound).
-  nginx fronts that port: `GET /` returns `200 ok` (the platform
+  A tiny Python front server (`front.py`, stdlib only, writes nothing
+  to disk) fronts that port: `GET /` returns `200 ok` (the platform
   health check requires a 2xx/3xx on the root path), the secret
-  WebSocket path is proxied to Xray on loopback port **3001**, and
+  WebSocket path is relayed to Xray on loopback port **3001**, and
   every other path returns 404.
 - Deployxa terminates HTTPS at `https://<project>.deployxa.online`
   and forwards WebSocket traffic to port 3000.
